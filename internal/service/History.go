@@ -1,17 +1,26 @@
 package service
 
-import "fmt"
+import (
+	"fmt"
+	"net"
+	"sync"
+)
 
 type History struct {
-	Messages []Message
+	mu       sync.Mutex
+	Messages []any
 }
 
-func (h *History) Push(m Message) {
+func (h *History) Push(m any) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.Messages = append(h.Messages, m)
 }
 
-func (h *History) PrintHistory() {
+func (h *History) PrintHistory(c net.Conn) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	for _, message := range h.Messages {
-		fmt.Println(message)
+		fmt.Fprint(c, message)
 	}
 }

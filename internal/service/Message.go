@@ -13,7 +13,7 @@ type Message struct {
 	Username string
 }
 
-func (m *Message) Stringer() string {
+func (m Message) String() string {
 	formattedTime := utils.FormatDate(m.Date)
 	return fmt.Sprintf("[%s][%s]:%s", formattedTime, m.Username, m.Msg)
 }
