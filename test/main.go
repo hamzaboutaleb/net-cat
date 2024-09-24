@@ -14,5 +14,4 @@ func main() {
 		Msg:      "hello",
 		Username: "test",
 	})
-	h.PrintHistory()
 }

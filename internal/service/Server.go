@@ -104,6 +104,9 @@ func (s *Server) CheckNewClient(conn net.Conn) bool {
 func (s *Server) ClientLogout(conn net.Conn) {
 	s.ClientCountLock()
 	defer s.ClientCountUnlock()
+	name := s.Clients.GetName(conn)
+	s.History.Push(utils.LeftMsg(name))
+	s.Clients.BroadCastExcept(conn, utils.LeftMsg(name))
 	if s.Clients.delete(conn) {
 		s.ChangeClientCount(DECREMENT)
 	}
@@ -139,7 +142,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 
 	// message := ""
-	buffer := make([]byte, 10)
+	buffer := make([]byte, 1024*4)
 	utils.Prompt(conn, username)
 	for {
 		n, err := conn.Read(buffer)
