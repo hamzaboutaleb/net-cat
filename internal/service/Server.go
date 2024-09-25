@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"strings"
@@ -32,6 +33,7 @@ func NewServer() *Server {
 	}
 	InitClient(&server.Clients)
 	server.SetPort(config.PORT)
+	server.History.Logger = InitLogger()
 	return server
 }
 
@@ -93,7 +95,7 @@ func (s *Server) CheckNewClient(conn net.Conn) bool {
 	s.ClientCountLock()
 	defer s.ClientCountUnlock()
 	if s.IsServerFull() {
-		fmt.Println(config.ErrClientFull)
+		fmt.Fprintln(conn, config.ErrClientFull)
 		conn.(*net.TCPConn).SetLinger(0)
 		return false
 	}
@@ -107,20 +109,12 @@ func (s *Server) ClientLogout(conn net.Conn) {
 	name := s.Clients.GetName(conn)
 	s.History.Push(utils.LeftMsg(name))
 	s.Clients.BroadCastExcept(conn, utils.LeftMsg(name))
-	if s.Clients.delete(conn) {
+	if s.Clients.Delete(conn) {
 		s.ChangeClientCount(DECREMENT)
 	}
 }
 
-func (s *Server) HandleConnection(conn net.Conn) {
-	defer conn.Close()
-	defer s.ClientLogout(conn)
-	defer fmt.Printf("number of connetced client %v -- %v\n", s.ClientCount, s.Clients.Clients)
-	fmt.Printf("%v Connected\v", conn)
-	if !s.CheckNewClient(conn) {
-		return
-	}
-	utils.PrintLogo(conn)
+func (s *Server) PromptName(conn net.Conn) string {
 	username := ""
 	for {
 		name, err := utils.GetName(conn)
@@ -140,24 +134,16 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			conn.Write(utils.ToBytes("[ENTER YOUR NAME]:"))
 		}
 	}
+	return username
+}
 
-	// message := ""
-	buffer := make([]byte, 1024*4)
+func (s *Server) PromptChat(conn net.Conn, username string) {
+	scanner := bufio.NewScanner(conn)
 	utils.Prompt(conn, username)
-	for {
-		n, err := conn.Read(buffer)
-
-		fmt.Println(n, err)
-		if n == 0 {
-			return
-		}
-		// fmt.Println(n, err, string(buffer[:n-1]), buffer[n-1], strings.TrimSpace(string(buffer)[:n-1]))
-		text := string(buffer)[:n]
-		if text[n-1] != '\n' {
+	for scanner.Scan() {
+		text := scanner.Text()
+		if len(text) > 0 && len(strings.TrimSpace(text)) > 0 && utils.IsPrint(text) {
 			text += "\n"
-			conn.Write(utils.ToBytes("\n"))
-		}
-		if len(text) > 0 && len(strings.TrimSpace(text)) > 0 {
 			message := Message{
 				Date:     time.Now(),
 				Msg:      text,
@@ -165,9 +151,21 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			}
 			s.History.Push(message)
 			s.Clients.BroadCastExcept(conn, message)
+			fmt.Println("error")
 		}
 		utils.Prompt(conn, username)
-
-		// flushStdin(conn)
 	}
+}
+
+func (s *Server) HandleConnection(conn net.Conn) {
+	defer conn.Close()
+	defer s.ClientLogout(conn)
+	defer fmt.Printf("number of connetced client %v -- %v\n", s.ClientCount, s.Clients.Clients)
+
+	if !s.CheckNewClient(conn) {
+		return
+	}
+	utils.PrintLogo(conn)
+	username := s.PromptName(conn)
+	s.PromptChat(conn, username)
 }

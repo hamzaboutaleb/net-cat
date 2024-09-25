@@ -9,12 +9,14 @@ import (
 type History struct {
 	mu       sync.Mutex
 	Messages []any
+	Logger   *Logger
 }
 
 func (h *History) Push(m any) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Messages = append(h.Messages, m)
+	h.Logger.Append(fmt.Sprint(m))
 }
 
 func (h *History) PrintHistory(c net.Conn) {

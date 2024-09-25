@@ -65,7 +65,7 @@ func (c *Client) BroadCastExcept(self net.Conn, o any) {
 	}
 }
 
-func (c *Client) delete(conn net.Conn) bool {
+func (c *Client) Delete(conn net.Conn) bool {
 	name, ok := c.Clients[conn]
 
 	if ok {
