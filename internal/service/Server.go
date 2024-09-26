@@ -151,7 +151,6 @@ func (s *Server) PromptChat(conn net.Conn, username string) {
 			}
 			s.History.Push(message)
 			s.Clients.BroadCastExcept(conn, message)
-			fmt.Println("error")
 		}
 		utils.Prompt(conn, username)
 	}
@@ -160,7 +159,6 @@ func (s *Server) PromptChat(conn net.Conn, username string) {
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
 	defer s.ClientLogout(conn)
-	defer fmt.Printf("number of connetced client %v -- %v\n", s.ClientCount, s.Clients.Clients)
 
 	if !s.CheckNewClient(conn) {
 		return
